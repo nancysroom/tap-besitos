@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Tap Besitos 💖</title>
+<style>
+  /* =============================================
+     TAP BESITOS - MVP v1.0
+     Para cambiar colores busca las variables aquí:
+  ============================================= */
+  :root {
+    --color-bg: #fce4ec;
+    --color-wall: #f8bbd0;
+    --color-accent: #f06292;
+    --color-accent2: #ce93d8;
+    --color-btn: #f48fb1;
+    --color-text: #c2185b;
+    --color-text2: #e91e8c;
+    /* Duración del reto en segundos → también cambia DURATION en JS */
+    /* Nombre del juego → cambia el <title> y los textos */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--color-bg);
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  #gameContainer {
+    width: 390px;
+    height: 100vh;
+    max-height: 844px;
+    position: relative;
+    overflow: hidden;
+    background: #fff0f5;
+  }
+
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+  }
+
+  /* ---- PANTALLAS ---- */
+  .screen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    pointer-events: none;
+  }
+  .screen.active { pointer-events: all; }
+  .screen.hidden { display: none; }
+
+  /* ---- BOTONES ---- */
+  .btn {
+    border: none;
+    border-radius: 50px;
+    padding: 16px 40px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: transform 0.1s, box-shadow 0.1s;
+    -webkit-appearance: none;
+  }
+  .btn:active { transform: scale(0.94); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #f48fb1, #f06292);
+    color: white;
+    box-shadow: 0 6px 18px rgba(240,98,146,0.45);
+  }
+  .btn-secondary {
+    background: linear-gradient(135deg, #ce93d8, #ba68c8);
+    color: white;
+    box-shadow: 0 4px 14px rgba(186,104,200,0.4);
+    font-size: 15px;
+    padding: 13px 32px;
+  }
+  .btn-whatsapp {
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    color: white;
+    box-shadow: 0 4px 14px rgba(67,160,71,0.4);
+    font-size: 15px;
+    padding: 13px 32px;
+  }
+
+  /* ---- PANTALLA INICIO ---- */
+  #startScreen {
+    gap: 0;
+    background: rgba(255,240,245,0.6);
+    backdrop-filter: blur(2px);
+  }
+  .start-icon { font-size: 60px; margin-bottom: 6px; }
+  .start-title {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--color-text);
+    margin-bottom: 4px;
+  }
+  .start-sub {
+    font-size: 14px;
+    color: var(--color-text2);
+    margin-bottom: 28px;
+  }
+  .name-label {
+    font-size: 13px;
+    color: var(--color-text2);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  #nameInput {
+    border: 2.5px solid #f48fb1;
+    border-radius: 16px;
+    padding: 11px 20px;
+    font-size: 17px;
+    color: var(--color-text);
+    background: white;
+    outline: none;
+    width: 240px;
+    text-align: center;
+    margin-bottom: 20px;
+    -webkit-appearance: none;
+    touch-action: auto;
+  }
+  #nameInput::placeholder { color: #f8bbd0; }
+  #nameInput:focus { border-color: #f06292; }
+  .start-hint {
+    font-size: 12px;
+    color: #f8bbd0;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  /* ---- PANTALLA JUEGO ---- */
+  #playScreen { justify-content: flex-start; padding-top: 20px; }
+
+  #timerBox {
+    position: absolute;
+    top: 18px; right: 18px;
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--color-text);
+    background: rgba(255,255,255,0.88);
+    padding: 6px 16px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(194,24,91,0.15);
+    line-height: 1;
+  }
+  #timerBox.urgent { color: #d32f2f; animation: pulse 0.4s ease infinite alternate; }
+  @keyframes pulse { to { transform: scale(1.08); } }
+
+  #counterBox {
+    position: absolute;
+    top: 18px; left: 18px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text);
+    background: rgba(255,255,255,0.88);
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(194,24,91,0.15);
+    line-height: 1.5;
+  }
+
+  #tapHint {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text2);
+    bottom: 280px;
+    pointer-events: none;
+  }
+
+  #tapBtn {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f48fb1, #f06292);
+    border: 5px solid white;
+    box-shadow: 0 8px 24px rgba(240,98,146,0.5);
+    font-size: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.07s, box-shadow 0.07s;
+  }
+  #tapBtn.tapped {
+    transform: translateX(-50%) scale(0.86);
+    box-shadow: 0 3px 12px rgba(240,98,146,0.35);
+  }
+
+  /* ---- CORAZONES FLOTANTES ---- */
+  .float-heart {
+    position: absolute;
+    pointer-events: none;
+    font-size: 22px;
+    animation: floatUp 1.1s ease-out forwards;
+    z-index: 10;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+    60%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translateY(-130px) scale(0.4) rotate(15deg); }
+  }
+
+  /* ---- PANTALLA FINAL ---- */
+  #endScreen { background: rgba(255,240,245,0.7); backdrop-filter: blur(4px); gap: 0; }
+
+  .score-card {
+    background: white;
+    border-radius: 28px;
+    padding: 28px 24px 24px;
+    text-align: center;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 10px 40px rgba(194,24,91,0.18);
+  }
+  .card-tag {
+    font-size: 13px;
+    color: #f48fb1;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .card-score {
+    font-size: 68px;
+    font-weight: 800;
+    color: var(--color-text);
+    line-height: 1;
+    margin: 4px 0;
+  }
+  .card-label {
+    font-size: 17px;
+    color: var(--color-text2);
+    margin: 6px 0 2px;
+    font-weight: 600;
+  }
+  .card-sub {
+    font-size: 13px;
+    color: #f48fb1;
+    margin-bottom: 16px;
+  }
+  .card-hearts { font-size: 22px; margin-bottom: 20px; letter-spacing: 4px; }
+  .card-btns { display: flex; flex-direction: column; gap: 10px; }
+  .card-btns .btn { width: 100%; }
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <canvas id="roomCanvas"></canvas>
+
+  <!-- PANTALLA INICIO -->
+  <div id="startScreen" class="screen active">
+    <div class="start-icon">💖</div>
+    <div class="start-title">Tap Besitos</div>
+    <div class="start-sub">¡Manda todo el amor del mundo!</div>
+    <div class="name-label">¿Para quién son los besitos?</div>
+    <input id="nameInput" type="text" placeholder="Escribe un nombre..." maxlength="20" autocomplete="off" />
+    <button class="btn btn-primary" onclick="startGame()">💌 Mandar amor</button>
+    <div class="start-hint">Tapea lo más rápido que puedas en 10 segundos</div>
+  </div>
+
+  <!-- PANTALLA JUEGO -->
+  <div id="playScreen" class="screen hidden">
+    <div id="timerBox">10</div>
+    <div id="counterBox">💋 0 besitos</div>
+    <div id="tapHint">¡Tapea rápido para mandar besitos!</div>
+    <div id="tapBtn"
+         ontouchstart="doTap(event)"
+         onclick="doTap(event)">💋</div>
+  </div>
+
+  <!-- PANTALLA FINAL -->
+  <div id="endScreen" class="screen hidden">
+    <div class="score-card">
+      <div class="card-tag">✨ Récord de amor ✨</div>
+      <div class="card-score" id="finalScore">0</div>
+      <div class="card-label" id="finalLabel">besitos enviados</div>
+      <div class="card-sub" id="finalSub">en 10 segundos</div>
+      <div class="card-hearts">💖 💕 💋 💕 💖</div>
+      <div class="card-btns">
+        <button class="btn btn-whatsapp" onclick="shareWhatsApp()">📱 Compartir por WhatsApp</button>
+        <button class="btn btn-secondary" onclick="restartGame()">🔄 Jugar de nuevo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Canvas oculto para generar imagen del récord -->
+<canvas id="recordCanvas" style="display:none" width="600" height="600"></canvas>
+
+<script>
+// =============================================
+// CONFIGURACIÓN — edita estos valores fácilmente
+// =============================================
+const DURATION     = 10;          // segundos del reto
+const GAME_TITLE   = "Tap Besitos"; // nombre del juego
+const FINAL_PHRASE = "besitos enviados"; // frase debajo del número
+const CHIBI_SPEED  = 2.2;         // velocidad del personaje (px por frame)
+// Emojis de corazones que aparecen al tapear
+const HEART_EMOJIS = ['💖','💋','💕','💗','💓','💝','🌹'];
+
+// =============================================
+// ESTADO DEL JUEGO
+// =============================================
+let taps = 0, timeLeft = DURATION, gameTimer = null;
+let recipientName = 'ti';
+let gameRunning = false;
+
+// =============================================
+// CANVAS + HABITACIÓN
+// =============================================
+const canvas = document.getElementById('roomCanvas');
+const ctx    = canvas.getContext('2d');
+const GW = 390, GH = 844;
+canvas.width = GW; canvas.height = GH;
+
+// Chibi state
+const chibi = { x: 195, y: 360, dir: 1, frame: 0, state: 'idle', celebTick: 0 };
+
+// Partículas canvas
+let particles = [];
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+}
+function rrStroke(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.stroke();
+}
+
+function drawRoom() {
+  ctx.clearRect(0, 0, GW, GH);
+
+  // FONDO PARED
+  ctx.fillStyle = '#f8bbd0';
+  ctx.fillRect(0, 0, GW, 300);
+
+  // Papel tapiz sutil
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < GW; x += 36) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 300); ctx.stroke();
+  }
+  for (let y = 0; y < 300; y += 36) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke();
+  }
+
+  // Corazones decorativos pared
+  ctx.font = '14px serif';
+  ctx.globalAlpha = 0.35;
+  [[155,55],[195,80],[235,50],[250,110],[120,100]].forEach(([x,y]) => ctx.fillText('💕',x,y));
+  ctx.globalAlpha = 1;
+
+  // RODAPIÉ
+  ctx.fillStyle = '#f48fb1';
+  ctx.fillRect(0, 293, GW, 10);
+
+  // PISO (cuadrícula)
+  ctx.fillStyle = '#fce4ec';
+  ctx.fillRect(0, 303, GW, GH - 303);
+  ctx.strokeStyle = 'rgba(255,182,193,0.4)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < GW; x += 34) {
+    ctx.beginPath(); ctx.moveTo(x, 303); ctx.lineTo(x, GH); ctx.stroke();
+  }
+  for (let y = 303; y < GH; y += 34) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GW, y); ctx.stroke();
+  }
+
+  // VENTANA IZQUIERDA
+  ctx.fillStyle = '#b3e5fc';
+  rr(30, 50, 90, 100, 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  rr(30, 50, 43, 100, 10);
+  ctx.strokeStyle = '#f06292'; ctx.lineWidth = 3;
+  rrStroke(30, 50, 90, 100, 10);
+  ctx.beginPath(); ctx.moveTo(75, 50); ctx.lineTo(75, 150); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(30, 100); ctx.lineTo(120, 100); ctx.stroke();
+  // Cortinas
+  ctx.fillStyle = '#f48fb1';
+  rr(22, 40, 18, 115, 6);
+  rr(108, 40, 18, 115, 6);
+  // Barra cortina
+  ctx.fillStyle = '#e91e8c';
+  rr(18, 38, 115, 6, 3);
+
+  // MARCO FOTO centro pared
+  ctx.fillStyle = '#fff9c4';
+  rr(165, 60, 70, 55, 6);
+  ctx.strokeStyle = '#f48fb1'; ctx.lineWidth = 2.5;
+  rrStroke(165, 60, 70, 55, 6);
+  ctx.font = '28px serif'; ctx.textAlign = 'center';
+  ctx.fillText('💖', 200, 98);
+  ctx.textAlign = 'left';
+
+  // ESTANTE DERECHO
+  ctx.fillStyle = '#ffccbc';
+  rr(280, 55, 95, 170, 10);
+  ctx.strokeStyle = '#ff8a65'; ctx.lineWidth = 2;
+  rrStroke(280, 55, 95, 170, 10);
+  // Repisas
+  ctx.fillStyle = '#ffab91';
+  ctx.fillRect(280, 115, 95, 5);
+  ctx.fillRect(280, 175, 95, 5);
+  // Libros fila 1
+  const bookC1 = ['#f06292','#ce93d8','#80cbc4','#ffcc02','#81d4fa'];
+  const bw1 = [13,11,15,11,13];
+  let bx = 286;
+  bookC1.forEach((c, i) => {
+    ctx.fillStyle = c; ctx.fillRect(bx, 65, bw1[i], 47);
+    bx += bw1[i] + 3;
+  });
+  // Libros fila 2
+  const bookC2 = ['#a5d6a7','#ff8a65','#80deea','#ce93d8'];
+  const bw2 = [13,12,14,12];
+  bx = 286;
+  bookC2.forEach((c, i) => {
+    ctx.fillStyle = c; ctx.fillRect(bx, 122, bw2[i], 50);
+    bx += bw2[i] + 3;
+  });
+  // Fila 3 (decoración)
+  ctx.font = '18px serif'; ctx.fillText('🪴', 282, 200);
+  ctx.font = '14px serif'; ctx.fillText('⭐', 312, 198);
+
+  // CAMA IZQUIERDA
+  ctx.fillStyle = '#f8bbd0';
+  rr(15, 305, 175, 100, 14);
+  // Cabecera
+  ctx.fillStyle = '#f48fb1';
+  rr(15, 305, 175, 35, 14);
+  // Edredón
+  ctx.fillStyle = '#fce4ec';
+  rr(20, 335, 165, 65, 10);
+  // Líneas edredón
+  ctx.strokeStyle = '#f8bbd0'; ctx.lineWidth = 1.5;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(20, 335 + i * 16); ctx.lineTo(185, 335 + i * 16); ctx.stroke();
+  }
+  // Almohadas
+  ctx.fillStyle = 'white';
+  rr(24, 312, 48, 22, 8);
+  rr(78, 312, 38, 22, 8);
+  ctx.strokeStyle = '#f8bbd0'; ctx.lineWidth = 1;
+  rrStroke(24, 312, 48, 22, 8);
+  rrStroke(78, 312, 38, 22, 8);
+
+  // ALFOMBRA
+  ctx.fillStyle = 'rgba(186,104,200,0.22)';
+  rr(75, 435, 240, 105, 18);
+  ctx.strokeStyle = 'rgba(186,104,200,0.5)'; ctx.lineWidth = 2;
+  rrStroke(84, 443, 222, 89, 12);
+  ctx.strokeStyle = 'rgba(186,104,200,0.3)'; ctx.lineWidth = 1;
+  rrStroke(94, 453, 202, 69, 8);
+  // Corazón en alfombra
+  ctx.font = '20px serif'; ctx.globalAlpha = 0.3;
+  ctx.fillText('💗', 177, 500);
+  ctx.globalAlpha = 1;
+
+  // ESCRITORIO DERECHO
+  ctx.fillStyle = '#ffccbc';
+  rr(270, 305, 110, 80, 10);
+  ctx.strokeStyle = '#ff8a65'; ctx.lineWidth = 2;
+  rrStroke(270, 305, 110, 80, 10);
+  // Patas
+  ctx.fillStyle = '#ff8a65';
+  ctx.fillRect(275, 380, 10, 30);
+  ctx.fillRect(365, 380, 10, 30);
+  // Monitor
+  ctx.fillStyle = '#78909c';
+  rr(300, 310, 60, 40, 5);
+  ctx.fillStyle = '#e3f2fd';
+  rr(303, 313, 54, 34, 4);
+  ctx.fillStyle = '#90a4ae';
+  ctx.fillRect(326, 350, 8, 10);
+  ctx.fillRect(320, 358, 20, 4);
+  // Lámpara
+  ctx.strokeStyle = '#ff8a65'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(298, 305); ctx.lineTo(295, 278); ctx.lineTo(322, 265); ctx.stroke();
+  ctx.fillStyle = '#ffeb3b';
+  ctx.beginPath(); ctx.arc(322, 265, 11, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,235,59,0.25)';
+  ctx.beginPath(); ctx.arc(322, 265, 22, 0, Math.PI*2); ctx.fill();
+
+  // PLANTITA ESQUINA DERECHA
+  ctx.fillStyle = '#8d6e63';
+  rr(325, 440, 34, 28, 5);
+  ctx.fillStyle = '#a5d6a7';
+  ctx.beginPath(); ctx.arc(342, 432, 20, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#81c784';
+  ctx.beginPath(); ctx.arc(328, 438, 14, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(356, 437, 15, 0, Math.PI*2); ctx.fill();
+
+  // PLANTITA PEQUEÑA IZQUIERDA
+  ctx.fillStyle = '#a1887f';
+  rr(18, 448, 24, 20, 4);
+  ctx.fillStyle = '#80cbc4';
+  ctx.beginPath(); ctx.arc(30, 440, 15, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#4db6ac';
+  ctx.beginPath(); ctx.arc(22, 446, 9, 0, Math.PI*2); ctx.fill();
+
+  // CORAZONES FLOTANTES CANVAS (partículas)
+  drawParticles();
+
+  // CHIBI
+  drawChibi();
+}
+
+function drawChibi() {
+  const x = chibi.x, y = chibi.y, d = chibi.dir;
+  const bounce = Math.sin(chibi.frame * 0.14) * 2.5;
+  const celebY = chibi.state === 'celebrate'
+    ? Math.abs(Math.sin(chibi.frame * 0.28)) * -12
+    : 0;
+  const fy = y + bounce + celebY;
+
+  // Sombra
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.beginPath(); ctx.ellipse(x, y + 4, 20, 5, 0, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  ctx.fillStyle = '#f48fb1';
+  rr(x-14, fy-30, 28, 30, 10);
+
+  // Collar/cuello
+  ctx.fillStyle = '#ce93d8';
+  rr(x-8, fy-30, 16, 8, 4);
+
+  // Head
+  ctx.fillStyle = '#ffccbc';
+  ctx.beginPath(); ctx.arc(x, fy-42, 18, 0, Math.PI*2); ctx.fill();
+
+  // Hair
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath(); ctx.arc(x, fy-56, 15, Math.PI, 0); ctx.fill();
+  ctx.fillRect(x-15, fy-56, 30, 10);
+  // Fleco
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath();
+  ctx.moveTo(x-15, fy-52);
+  ctx.quadraticCurveTo(x-5, fy-46, x, fy-50);
+  ctx.quadraticCurveTo(x+5, fy-46, x+15, fy-52);
+  ctx.fill();
+
+  // Orejas
+  ctx.fillStyle = '#ffccbc';
+  ctx.beginPath(); ctx.ellipse(x-17, fy-43, 5, 7, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+17, fy-43, 5, 7, 0.3, 0, Math.PI*2); ctx.fill();
+
+  // Eyes
+  const eyeOff = chibi.state === 'celebrate' ? 0 : 0;
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath(); ctx.ellipse(x-6*d, fy-43, 3, 3.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+6*d, fy-43, 3, 3.5, 0, 0, Math.PI*2); ctx.fill();
+  // Brillo ojos
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.arc(x-5*d, fy-45, 1, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+7*d, fy-45, 1, 0, Math.PI*2); ctx.fill();
+
+  // Sonrisa (más grande cuando celebra)
+  ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  if (chibi.state === 'celebrate') {
+    ctx.arc(x, fy-36, 7, 0.1, Math.PI-0.1);
+  } else {
+    ctx.arc(x + 2*d, fy-37, 5, 0.2, Math.PI-0.2);
+  }
+  ctx.stroke();
+
+  // Rubor
+  ctx.fillStyle = 'rgba(255,100,150,0.38)';
+  ctx.beginPath(); ctx.ellipse(x-11, fy-38, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+11, fy-38, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  // Brazos
+  ctx.fillStyle = '#ffccbc';
+  if (chibi.state === 'celebrate') {
+    const swing = Math.sin(chibi.frame * 0.3) * 18;
+    rr(x-22, fy-29-swing/2, 10, 18, 5);
+    rr(x+12, fy-29+swing/2, 10, 18, 5);
+  } else {
+    rr(x-22, fy-26, 10, 16, 5);
+    rr(x+12, fy-26, 10, 16, 5);
+  }
+
+  // Falda/cuerpo inferior
+  ctx.fillStyle = '#ce93d8';
+  rr(x-12, fy-2, 24, 14, 6);
+
+  // Piernas
+  ctx.fillStyle = '#ffccbc';
+  const legSwing = chibi.state === 'walk' ? Math.sin(chibi.frame * 0.15) * 7 : 0;
+  rr(x-11, fy+10, 10, 18+legSwing, 5);
+  rr(x+1, fy+10, 10, 18-legSwing, 5);
+
+  // Zapatos
+  ctx.fillStyle = '#f06292';
+  ctx.beginPath(); ctx.ellipse(x-6, fy+29+legSwing, 8, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+6, fy+29-legSwing, 8, 5, 0, 0, Math.PI*2); ctx.fill();
+
+  // Corazón flotante cuando celebra
+  if (chibi.state === 'celebrate') {
+    ctx.font = '22px serif';
+    ctx.globalAlpha = 0.85 + Math.sin(chibi.frame * 0.18) * 0.15;
+    ctx.textAlign = 'center';
+    ctx.fillText('💖', x, fy-72);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.font = p.size + 'px serif';
+    ctx.fillText(p.emoji, p.x, p.y);
+    ctx.restore();
+    p.y -= p.vy;
+    p.x += p.vx;
+    p.vy -= 0.04;
+    p.life--;
+  });
+}
+
+// Loop de animación
+function animLoop() {
+  chibi.frame++;
+  // Auto-reset celebrate
+  if (chibi.celebTick > 0) {
+    chibi.celebTick--;
+    if (chibi.celebTick === 0 && !gameRunning) chibi.state = 'idle';
+  }
+  drawRoom();
+  requestAnimationFrame(animLoop);
+}
+animLoop();
+
+// =============================================
+// LÓGICA DEL JUEGO
+// =============================================
+function startGame() {
+  const val = document.getElementById('nameInput').value.trim();
+  recipientName = val || 'ti';
+  taps = 0;
+  timeLeft = DURATION;
+  gameRunning = true;
+  chibi.state = 'idle';
+
+  showScreen('playScreen');
+  document.getElementById('timerBox').textContent = timeLeft;
+  document.getElementById('timerBox').classList.remove('urgent');
+  updateCounter();
+
+  gameTimer = setInterval(() => {
+    timeLeft--;
+    const box = document.getElementById('timerBox');
+    box.textContent = timeLeft;
+    if (timeLeft <= 3) box.classList.add('urgent');
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+function doTap(e) {
+  e.preventDefault();
+  if (!gameRunning) return;
+  taps++;
+  updateCounter();
+
+  // Celebración chibi
+  chibi.state = 'celebrate';
+  chibi.celebTick = 25;
+
+  // Partícula canvas
+  const cx = chibi.x + (Math.random()-0.5)*30;
+  const cy = chibi.y - 40;
+  particles.push({
+    x: cx, y: cy,
+    vx: (Math.random()-0.5)*1.8,
+    vy: 2.5 + Math.random()*2,
+    life: 50, maxLife: 50,
+    size: 18 + Math.random()*12,
+    emoji: HEART_EMOJIS[Math.floor(Math.random()*HEART_EMOJIS.length)]
+  });
+
+  // Corazón DOM desde el botón
+  spawnDomHeart();
+
+  // Animación botón
+  const btn = document.getElementById('tapBtn');
+  btn.classList.add('tapped');
+  setTimeout(() => btn.classList.remove('tapped'), 80);
+}
+
+function spawnDomHeart() {
+  const btn = document.getElementById('tapBtn');
+  const cont = document.getElementById('gameContainer').getBoundingClientRect();
+  const br = btn.getBoundingClientRect();
+  const bx = br.left - cont.left + br.width/2;
+  const by = br.top - cont.top;
+
+  const el = document.createElement('div');
+  el.className = 'float-heart';
+  el.textContent = HEART_EMOJIS[Math.floor(Math.random()*HEART_EMOJIS.length)];
+  el.style.left = (bx - 12 + (Math.random()-0.5)*60) + 'px';
+  el.style.top = (by - 10) + 'px';
+  document.getElementById('gameContainer').appendChild(el);
+  setTimeout(() => el.remove(), 1150);
+}
+
+function updateCounter() {
+  document.getElementById('counterBox').textContent =
+    '💋 ' + taps + (taps === 1 ? ' besito' : ' besitos');
+}
+
+function endGame() {
+  clearInterval(gameTimer);
+  gameRunning = false;
+  chibi.state = 'celebrate';
+  chibi.celebTick = 999;
+
+  document.getElementById('finalScore').textContent = taps;
+  document.getElementById('finalLabel').textContent =
+    FINAL_PHRASE + ' para ' + recipientName;
+  document.getElementById('finalSub').textContent =
+    'en ' + DURATION + ' segundos 💋';
+
+  showScreen('endScreen');
+}
+
+function restartGame() {
+  chibi.state = 'idle';
+  chibi.celebTick = 0;
+  showScreen('startScreen');
+}
+
+function showScreen(id) {
+  ['startScreen','playScreen','endScreen'].forEach(s => {
+    const el = document.getElementById(s);
+    if (s === id) { el.classList.remove('hidden'); el.classList.add('active'); }
+    else          { el.classList.add('hidden'); el.classList.remove('active'); }
+  });
+}
+
+// =============================================
+// COMPARTIR POR WHATSAPP
+// =============================================
+function shareWhatsApp() {
+  const name = recipientName;
+  const score = taps;
+  const msg = `💖 ¡Récord de amor!\n\nMandé ${score} besitos para ${name} en ${DURATION} segundos 💋\n\n¿Puedes superarme? 🎮`;
+
+  // Web Share API (iOS/Android)
+  if (navigator.share) {
+    navigator.share({
+      title: '💖 ' + GAME_TITLE,
+      text: msg
+    }).catch(() => openWhatsAppFallback(msg));
+  } else {
+    openWhatsAppFallback(msg);
+  }
+}
+
+function openWhatsAppFallback(msg) {
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>
