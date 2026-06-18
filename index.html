@@ -147,33 +147,8 @@
   /* ---- PANTALLA JUEGO ---- */
   #playScreen { justify-content: flex-start; padding-top: 20px; }
 
-  #timerBox {
-    position: absolute;
-    top: 60px; right: 18px;
-    font-size: 30px;
-    font-weight: 800;
-    color: var(--color-text);
-    background: rgba(255,255,255,0.88);
-    padding: 6px 16px;
-    border-radius: 20px;
-    box-shadow: 0 2px 10px rgba(194,24,91,0.15);
-    line-height: 1;
-  }
-  #timerBox.urgent { color: #d32f2f; animation: pulse 0.4s ease infinite alternate; }
-  @keyframes pulse { to { transform: scale(1.08); } }
-
-  #counterBox {
-    position: absolute;
-    top: 60px; left: 18px;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-text);
-    background: rgba(255,255,255,0.88);
-    padding: 6px 14px;
-    border-radius: 20px;
-    box-shadow: 0 2px 10px rgba(194,24,91,0.15);
-    line-height: 1.5;
-  }
+  #timerBox { display: none; }
+  #counterBox { display: none; }
 
   #tapHint {
     position: absolute;
@@ -182,13 +157,13 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--color-text2);
-    bottom: 240px;
+    bottom: 195px;
     pointer-events: none;
   }
 
   #tapBtn {
     position: absolute;
-    bottom: 60px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     width: 150px;
@@ -480,6 +455,20 @@ function drawRoom() {
   ctx.fillText('💗', 177, 500);
   ctx.globalAlpha = 1;
 
+  // CONTADOR EN ALFOMBRA (solo durante el juego)
+  if (gameRunning) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 15px Segoe UI, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(195-70, 475, 140, 32, 16);
+    ctx.fill();
+    ctx.fillStyle = '#c2185b';
+    ctx.fillText('💋 ' + taps + (taps === 1 ? ' besito' : ' besitos'), 195, 496);
+    ctx.restore();
+  }
+
   // ESCRITORIO DERECHO
   ctx.fillStyle = '#ffccbc';
   rr(270, 305, 110, 80, 10);
@@ -629,6 +618,22 @@ function drawChibi() {
     ctx.fillText('💖', x, fy-72);
     ctx.textAlign = 'left';
     ctx.globalAlpha = 1;
+  }
+
+  // TIMER arriba del chibi (solo durante el juego)
+  if (gameRunning) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    const timerY = fy - 88;
+    const isUrgent = timeLeft <= 3;
+    ctx.fillStyle = isUrgent ? 'rgba(255,235,235,0.95)' : 'rgba(255,255,255,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(x - 28, timerY - 22, 56, 28, 14);
+    ctx.fill();
+    ctx.font = 'bold 18px Segoe UI, sans-serif';
+    ctx.fillStyle = isUrgent ? '#d32f2f' : '#c2185b';
+    ctx.fillText('⏱ ' + timeLeft, x, timerY);
+    ctx.restore();
   }
 }
 
